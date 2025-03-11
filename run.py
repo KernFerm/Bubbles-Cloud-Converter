@@ -6,7 +6,7 @@ from logging.handlers import RotatingFileHandler
 import werkzeug.utils
 from urllib.parse import urlparse
 import magic  # Requires python-magic
-from flask import Flask, render_template, request, send_from_directory, abort, jsonify
+from flask import Flask, render_template, request, send_from_directory, abort, jsonify, url_for
 from converter import convert_file, async_convert
 
 # Configure logging with RotatingFileHandler
