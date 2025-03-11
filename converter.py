@@ -95,7 +95,7 @@ def convert_audio(input_path, output_path, advanced=False, options=None):
                     f.write(best_data)
                 logger.info("Audio converted with advanced compression at bitrate %s", chosen_bitrate)
                 return True, f"Audio converted with advanced compression (bitrate={chosen_bitrate})"
-            audio.export(output_filepath, format=fmt, bitrate=candidate_bitrates[-1])
+            audio.export(output_path, format=fmt, bitrate=candidate_bitrates[-1])
             logger.info("Audio converted with advanced compression at minimum bitrate %s", candidate_bitrates[-1])
             return True, f"Audio converted with advanced compression (minimum bitrate={candidate_bitrates[-1]})"
         else:
