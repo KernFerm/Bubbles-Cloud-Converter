@@ -1,17 +1,23 @@
-# Byte-compiled / optimized / DLL files
+# -----------------------------
+# Python & Build Artifacts
+# -----------------------------
 __pycache__/
 *.py[cod]
 *.pyd
 *.pyo
-
-# C extensions
 *.so
+*.egg
+*.egg-info/
+.installed.cfg
+*.manifest
+*.spec
 
-# Distribution / packaging
-.Python
+# -----------------------------
+# Installer & Packaging
+# -----------------------------
 build/
-develop-eggs/
 dist/
+develop-eggs/
 downloads/
 eggs/
 .eggs/
@@ -20,17 +26,10 @@ lib64/
 parts/
 sdist/
 var/
-*.egg-info/
-.installed.cfg
-*.egg
-*.manifest
-*.spec
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Virtual environments
+# -----------------------------
+# Virtual Environments
+# -----------------------------
 venv/
 env/
 .venv/
@@ -39,11 +38,10 @@ ENV/
 env.bak/
 venv.bak/
 
-# Flask instance folder
-instance/
-*.pyc
-
-# Unit test / coverage reports
+# -----------------------------
+# Logs & Coverage
+# -----------------------------
+*.log
 .coverage
 .tox/
 .nox/
@@ -51,27 +49,32 @@ instance/
 coverage.xml
 htmlcov/
 
-# mypy
-.mypy_cache/
+# -----------------------------
+# Flask Folders
+# -----------------------------
+instance/
 
-# PyCharm / IntelliJ
-.idea/
-
-# Visual Studio Code
-.vscode/
-
-# Mac OS / Linux system files
-.DS_Store
-*.swp
-*.swo
-Thumbs.db
-
-# Logs
-*.log
-
-# Local configuration files
-.env
-
-# Runtime generated folders
+# -----------------------------
+# Upload/Converted Folders
+# -----------------------------
 uploads/
 converted/
+
+# -----------------------------
+# Local Config
+# -----------------------------
+.env
+
+# -----------------------------
+# IDE/Editor Files
+# -----------------------------
+.idea/
+.vscode/
+
+# -----------------------------
+# OS/Editor-Specific Files
+# -----------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
