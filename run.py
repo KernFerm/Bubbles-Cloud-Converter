@@ -2,13 +2,20 @@ import os
 import uuid
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import werkzeug.utils
+import magic  # Requires python-magic
 from flask import Flask, render_template, request, send_from_directory, redirect, url_for, flash, jsonify
-from converter import convert_file
+from converter import convert_file, async_convert
 
-# Configure logging
+# Configure logging with RotatingFileHandler
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s')
+handler = RotatingFileHandler('app.log', maxBytes=1000000, backupCount=5)
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+handler.setFormatter(formatter)
+logging.getLogger('').addHandler(handler)
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
@@ -52,6 +59,25 @@ def convert():
     # Sanitize filename
     original_filename = secure_filename(file.filename)
     
+    # Enhanced file type validation using python-magic
+    file.seek(0)
+    detected_type = magic.from_buffer(file.read(1024), mime=True)
+    file.seek(0)  # Reset file pointer
+    ext = os.path.splitext(original_filename)[1].lower()
+    allowed = False
+    if ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']:
+        allowed = detected_type.startswith("image/")
+    elif ext in ['.mp3', '.wav', '.flac', '.ogg', '.aac']:
+        allowed = detected_type.startswith("audio/")
+    elif ext in ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.mpeg', '.mpg']:
+        allowed = detected_type.startswith("video/")
+    elif ext in ['.doc', '.docx', '.odt', '.txt', '.html', '.md', '.pdf', '.xls', '.xlsx', '.ppt', '.pptx', '.csv']:
+        allowed = True  # Accept various document types
+    if not allowed:
+        flash("File type does not match its extension. Please upload a valid file.")
+        logging.error("File type validation failed: extension %s but detected mime type %s", ext, detected_type)
+        return redirect(url_for('index'))
+    
     # Get parameters from the form
     output_filename = request.form.get('output_filename', '').strip()
     compress = request.form.get('compress', 'n') == 'y'
@@ -89,11 +115,13 @@ def convert():
         output_filename = secure_filename(output_filename)
     output_filepath = os.path.join(app.config['CONVERTED_FOLDER'], unique_prefix + "_" + output_filename)
     
-    # Convert the file based on its type and options
-    success, message = convert_file(input_filepath, output_filepath, compress=compress, advanced=advanced, options=options)
-    if not success:
-        flash("Conversion error: " + message)
-        logging.error("Conversion error for %s: %s", input_filepath, message)
+    # Queue the conversion task asynchronously via Celery and wait for result
+    task = async_convert.delay(input_filepath, output_filepath, compress, advanced, options)
+    result = task.get(timeout=300)  # Wait up to 5 minutes for conversion
+    
+    if not result[0]:
+        flash("Conversion error: " + result[1])
+        logging.error("Conversion error for %s: %s", input_filepath, result[1])
         return redirect(url_for('index'))
     
     logging.info("Conversion successful: %s", output_filepath)
@@ -147,14 +175,15 @@ def api_convert():
             output_filename = secure_filename(output_filename)
         output_filepath = os.path.join(app.config['CONVERTED_FOLDER'], unique_prefix + "_" + output_filename)
         
-        success, message = convert_file(input_filepath, output_filepath, compress=compress, advanced=advanced, options=options)
-        if not success:
-            logging.error("API conversion error for %s: %s", input_filepath, message)
-            return jsonify(success=False, message=message), 500
+        task = async_convert.delay(input_filepath, output_filepath, compress, advanced, options)
+        result = task.get(timeout=300)
+        if not result[0]:
+            logging.error("API conversion error for %s: %s", input_filepath, result[1])
+            return jsonify(success=False, message=result[1]), 500
         
         download_url = url_for('download_file', filename=os.path.basename(output_filepath), _external=True)
         logging.info("API conversion successful: %s", output_filepath)
-        return jsonify(success=True, message=message, download_url=download_url)
+        return jsonify(success=True, message=result[1], download_url=download_url)
     except Exception as e:
         logging.exception("Unexpected error in API conversion")
         return jsonify(success=False, message=str(e)), 500
