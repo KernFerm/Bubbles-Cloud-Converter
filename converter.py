@@ -5,8 +5,20 @@ from io import BytesIO
 from PIL import Image
 from pydub import AudioSegment
 import logging
+from celery import Celery
 
 logger = logging.getLogger(__name__)
+
+# Initialize Celery with Redis broker (ensure Redis is running)
+celery = Celery('BubblesCloudConverter', broker='redis://localhost:6379/0')
+
+@celery.task
+def async_convert(input_path, output_path, compress, advanced, options):
+    """
+    Asynchronous Celery task that wraps the file conversion.
+    Returns a tuple (success: bool, message: str)
+    """
+    return convert_file(input_path, output_path, compress=compress, advanced=advanced, options=options)
 
 def convert_image(input_path, output_path, compress=False, advanced=False, options=None):
     """
@@ -67,7 +79,6 @@ def convert_audio(input_path, output_path, advanced=False, options=None):
     try:
         audio = AudioSegment.from_file(input_path)
         fmt = os.path.splitext(output_path)[1].replace('.', '')
-        # Advanced iterative compression for audio if target_size is provided
         if advanced and 'target_size' in options:
             target_size = options.get('target_size')
             candidate_bitrates = ["320k", "256k", "192k", "128k", "96k"]
@@ -86,7 +97,6 @@ def convert_audio(input_path, output_path, advanced=False, options=None):
                     f.write(best_data)
                 logger.info("Audio converted with advanced compression at bitrate %s", chosen_bitrate)
                 return True, f"Audio converted with advanced compression (bitrate={chosen_bitrate})"
-            # If not below target, use the lowest bitrate candidate
             audio.export(output_path, format=fmt, bitrate=candidate_bitrates[-1])
             logger.info("Audio converted with advanced compression at minimum bitrate %s", candidate_bitrates[-1])
             return True, f"Audio converted with advanced compression (minimum bitrate={candidate_bitrates[-1]})"
@@ -115,7 +125,6 @@ def convert_video(input_path, output_path, advanced=False, options=None):
         ext = os.path.splitext(output_path)[1].replace('.', '').lower()
         codec = 'libx264' if ext == 'mp4' else None
         
-        # Prepare write parameters
         write_kwargs = {}
         if advanced:
             if 'target_resolution' in options:
@@ -123,14 +132,12 @@ def convert_video(input_path, output_path, advanced=False, options=None):
             if 'target_bitrate' in options:
                 write_kwargs['bitrate'] = options['target_bitrate']
         
-        # If target file size is specified, try iterative bitrate reduction
         if advanced and 'target_size' in options:
             target_size = options.get('target_size')
             candidate_bitrates = ["2500k", "2000k", "1500k", "1000k", "500k"]
             chosen_bitrate = None
             best_success = False
             for br in candidate_bitrates:
-                # Generate a unique temporary filename to avoid collisions
                 temp_out = output_path + "." + uuid.uuid4().hex + ".temp"
                 write_kwargs['bitrate'] = br
                 clip.write_videofile(temp_out, codec=codec, audio_codec='aac', **write_kwargs, verbose=False, logger=None)
@@ -190,4 +197,22 @@ def fallback_convert(input_path, output_path, advanced=False, options=None):
         logger.exception("Error in fallback conversion")
         return False, str(e)
 
-def convert_file(input_path, output_path, compress=False, advanced=False, opt
+def convert_file(input_path, output_path, compress=False, advanced=False, options=None):
+    """
+    Determine file type and perform conversion.
+    Supports images, audio, video, documents (including spreadsheets and presentations),
+    and falls back to a copy if conversion is unsupported.
+    """
+    if options is None:
+        options = {}
+    ext = os.path.splitext(input_path)[1].lower()
+    if ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']:
+        return convert_image(input_path, output_path, compress=compress, advanced=advanced, options=options)
+    elif ext in ['.mp3', '.wav', '.flac', '.ogg', '.aac']:
+        return convert_audio(input_path, output_path, advanced=advanced, options=options)
+    elif ext in ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.mpeg', '.mpg']:
+        return convert_video(input_path, output_path, advanced=advanced, options=options)
+    elif ext in ['.doc', '.docx', '.odt', '.txt', '.html', '.md', '.pdf', '.xls', '.xlsx', '.ppt', '.pptx', '.csv']:
+        return convert_document(input_path, output_path, advanced=advanced, options=options)
+    else:
+        return fallback_convert(input_path, output_path, advanced=advanced, options=options)
