@@ -1,85 +1,86 @@
 # Development Notes
 
-This document outlines potential improvements, considerations, and known limitations in the **Bubbles Cloud Converter** codebase. Contributors are encouraged to review these points and propose solutions or enhancements via pull requests.
+This document outlines the current state of the **Bubbles Cloud Converter** project, including recent improvements, known limitations, and suggestions for future enhancements. Contributors are encouraged to review these points and propose solutions or enhancements via pull requests.
 
 ---
 
-## 1. Concurrency & Temporary Files
+## Recent Improvements
 
-- **Iterative Video Compression**  
-  In `converter.py`’s `convert_video()` function, we create a temporary file (`.temp`) for each bitrate tested.  
-  - **Issue:** If multiple users convert the same file name concurrently, they could overwrite each other’s `.temp` file.  
-  - **Suggestion:** Use a unique identifier (e.g., UUID) or random string to ensure each job’s temp file is unique.
+### 1. Asynchronous Processing with Celery
+- **What Changed:**  
+  Heavy conversion tasks are now processed asynchronously using Celery (with Redis as the message broker). This offloads conversion work from the web request, keeping the interface responsive.
+- **Benefit:**  
+  Improved responsiveness and scalability for resource-intensive conversions.
 
-- **Renaming Temp Files**  
-  The code renames the `.temp` file to the final output after a successful pass.  
-  - **Issue:** Another process could still be using or writing to that `.temp` file, leading to race conditions.  
-  - **Suggestion:** Again, unique filenames and robust error handling can mitigate concurrency issues.
+### 2. Enhanced File Type Validation
+- **What Changed:**  
+  The project now uses `python-magic` to inspect the MIME type of uploaded files and validate them against their file extensions.
+- **Benefit:**  
+  Helps prevent spoofed file uploads and ensures that the file’s actual content matches its declared type.
 
----
+### 3. Improved Logging & Error Handling
+- **What Changed:**  
+  Logging has been integrated using Python’s logging module with a RotatingFileHandler. Key events and errors are recorded in `app.log` for easier debugging and monitoring.
+- **Benefit:**  
+  Provides structured, persistent logging that aids in troubleshooting and long-term analysis.
 
-## 2. Large File Handling & Performance
-
-- **Iterative Approaches**  
-  - **Images:** Repeatedly lowering JPEG quality can be CPU-intensive, especially for large images or very low target sizes.  
-  - **Audio/Video:** Testing multiple bitrates increases CPU/disk usage, particularly for large media files.  
-  - **Suggestion:** Implement user-defined single-pass compression for more control, or ensure you have enough server resources for iterative methods.
-
-- **Memory Usage**  
-  - Handling large media files fully in memory can spike RAM usage.  
-  - **Suggestion:** For extremely large files, consider a streaming or chunk-based approach.
-
----
-
-## 3. File Validation & Security
-
-- **File Extension vs. Actual Format**  
-  - **Issue:** The code decides how to convert based on the file extension, which can be spoofed.  
-  - **Suggestion:** Implement deeper file-type checks (e.g., using Python’s `imghdr`, reading headers, or verifying magic numbers).
-
-- **Path Sanitization**  
-  - **Issue:** Uploaded filenames might include special characters or path traversal attempts.  
-  - **Suggestion:** Sanitize or randomize filenames before saving.
-
-- **Rate Limiting / Authentication**  
-  - **Issue:** Without limits, a malicious user could upload huge files or spam conversions.  
-  - **Suggestion:** Implement file-size checks, rate limiting, or user authentication to prevent abuse.
+### 4. Secure Configuration & File Handling
+- **What Changed:**  
+  The secret key is now stored in a separate `config.json` file rather than being hardcoded. Uploaded filenames are sanitized using Werkzeug’s `secure_filename()`, and unique UUID prefixes are added to file names.
+- **Benefit:**  
+  Enhances security, prevents potential file overwriting, and mitigates path traversal attacks.
 
 ---
 
-## 4. `run.py` Considerations
+## Future Improvements
 
-- **Debug Mode**  
-  - Currently uses `app.run(debug=True)`.  
-  - **Suggestion:** Use `debug=False` for production and run behind a production WSGI server (e.g., Gunicorn) with Nginx.
+### Concurrency & Scalability
+- **Consideration:**  
+  Although asynchronous processing is implemented via Celery, further scalability improvements may be required for high traffic.
+- **Suggestions:**  
+  - Optimize task queuing and worker management.
+  - Deploy using a production-ready WSGI server (e.g., Gunicorn) with proper worker configuration.
+  - Consider distributed task queues if load increases significantly.
 
-- **File Size Limits**  
-  - Flask doesn’t impose an upload limit by default.  
-  - **Suggestion:** Set `app.config['MAX_CONTENT_LENGTH']` to prevent overly large uploads.
+### Further Enhanced File Validation
+- **Consideration:**  
+  While MIME type validation is in place, additional file content checks could further improve security.
+- **Suggestions:**  
+  - Implement header analysis or verify magic numbers for specific file types.
+  - Integrate additional libraries or custom checks tailored for high-risk formats.
 
-- **Parallel Requests**  
-  - Multiple conversions happening at once can cause resource contention.  
-  - **Suggestion:** Ensure concurrency is handled properly, possibly by using a queue or job manager (e.g., Celery or RQ) for large or time-consuming conversions.
+### Advanced Logging & Error Reporting
+- **Consideration:**  
+  Current logging captures basic events, but more granular error reporting would be beneficial.
+- **Suggestions:**  
+  - Implement rotating log files with alerting for critical errors.
+  - Store error logs in a centralized logging system for deeper analysis.
+  - Improve error messages and user feedback for better debugging.
 
 ---
 
-## 5. Logging & Error Handling
+## Known Limitations
 
-- **Error Reporting**  
-  - Currently, conversion errors are flashed to the user in a generic way.  
-  - **Suggestion:** Implement structured logging to capture detailed errors for debugging or analytics.
-
-- **No Logging of Completed Jobs**  
-  - The code does not store logs of successful conversions.  
-  - **Suggestion:** Record usage metrics (file size, duration, success/failure) for insights or auditing.
+- **Resource Intensive Conversions:**  
+  Iterative compression methods (for images, audio, and video) can be CPU- and memory-intensive for very large files.
+- **Basic Security Checks:**  
+  Although file type validation is enhanced, further measures such as rate limiting, file size restrictions, and user authentication are recommended for public deployments.
+- **Testing & Metrics:**  
+  The project currently lacks extensive automated tests and usage metrics. Future updates should address these to improve reliability and performance monitoring.
 
 ---
 
-## Summary
+## Contribution Guidelines
 
-- **Local / Small Scale Usage:** The code is generally fine for local development or small-scale usage.
-- **Production Readiness:** Address concurrency, security, file validation, logging, and resource management if you plan to deploy publicly or handle large workloads.
+- **Code Quality:**  
+  Follow [PEP 8](https://pep8.org/) conventions, include docstrings, and write clear inline comments.
+- **Testing:**  
+  Ensure new features and bug fixes are accompanied by tests.
+- **Documentation:**  
+  Update this document and other relevant documentation as improvements are made.
+- **Pull Requests:**  
+  Fork the repository and submit pull requests with clear commit messages and references to any related issues.
 
-Feel free to open an issue or pull request if you’d like to tackle any of these improvements. We welcome contributions and feedback from the community—together, we can make Bubbles Cloud Converter more robust and feature-rich!
+Your contributions and feedback are invaluable in making Bubbles Cloud Converter more robust and feature-rich. Thank you for helping improve the project!
 
 ---
