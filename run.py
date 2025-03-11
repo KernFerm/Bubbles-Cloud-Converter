@@ -47,14 +47,13 @@ def index():
 @app.route('/convert', methods=['POST'])
 def convert():
     if 'file' not in request.files:
-        flash('No file part')
         logging.error("No file part in the request")
-        return redirect(request.url)
+        return "Error: No file part in the request", 400
+    
     file = request.files['file']
     if file.filename == '':
-        flash('No selected file')
         logging.error("No file selected")
-        return redirect(request.url)
+        return "Error: No file selected", 400
     
     # Sanitize filename
     original_filename = secure_filename(file.filename)
