@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bubbles Cloud Converter</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    body { 
+      padding-top: 50px; 
+      background-color: #f8f9fa; 
+    }
+    .container { 
+      max-width: 600px; 
+    }
+    .dropzone {
+      border: 2px dashed #007bff;
+      border-radius: 5px;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      background-color: #ffffff;
+      transition: background-color 0.3s ease;
+    }
+    .dropzone.hover {
+      background-color: #e9ecef;
+    }
+    h1 {
+      font-weight: 700;
+      margin-bottom: 30px;
+    }
+    #advancedOptions {
+      display: none;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="text-center">Bubbles Cloud Converter</h1>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert alert-warning">
+          {% for message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form id="uploadForm" action="{{ url_for('convert') }}" method="post" enctype="multipart/form-data">
+          <div class="form-group">
+            <label for="file">Select a file to convert:</label>
+            <div id="dropzone" class="dropzone">
+              <p>Drag & drop a file here, or click to select one.</p>
+              <input type="file" id="file" name="file" style="display: none;" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="output_filename">Output File Name (with extension):</label>
+            <input type="text" class="form-control" id="output_filename" name="output_filename" placeholder="e.g. output.jpg" required>
+          </div>
+          <div class="form-group">
+            <label for="compress">Compress File (if applicable):</label>
+            <select class="form-control" id="compress" name="compress">
+              <option value="n">No</option>
+              <option value="y">Yes</option>
+            </select>
+          </div>
+          <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input" id="advanced" name="advanced" value="y">
+            <label class="form-check-label" for="advanced">Enable Advanced Compression Options</label>
+          </div>
+          <div id="advancedOptions">
+            <div class="form-group">
+              <label for="target_size">Target File Size (KB) [For Images/Audio/Video]:</label>
+              <input type="number" class="form-control" id="target_size" name="target_size" placeholder="e.g. 4200">
+            </div>
+            <div class="form-group">
+              <label for="target_bitrate">Target Bitrate [For Audio/Video] (e.g., 192k):</label>
+              <input type="text" class="form-control" id="target_bitrate" name="target_bitrate" placeholder="e.g. 192k">
+            </div>
+            <div class="form-group">
+              <label for="target_resolution">Target Resolution [For Video] (e.g., 1280x720):</label>
+              <input type="text" class="form-control" id="target_resolution" name="target_resolution" placeholder="e.g. 1280x720">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Convert</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Drag and drop functionality for file upload
+    var dropzone = document.getElementById('dropzone');
+    var fileInput = document.getElementById('file');
+
+    dropzone.addEventListener('click', function() {
+      fileInput.click();
+    });
+
+    dropzone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('hover');
+    });
+
+    dropzone.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('hover');
+    });
+
+    dropzone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('hover');
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+      }
+    });
+    
+    // Toggle advanced options display
+    var advancedCheckbox = document.getElementById('advanced');
+    var advancedOptions = document.getElementById('advancedOptions');
+    advancedCheckbox.addEventListener('change', function() {
+      advancedOptions.style.display = this.checked ? 'block' : 'none';
+    });
+  </script>
+</body>
+</html>

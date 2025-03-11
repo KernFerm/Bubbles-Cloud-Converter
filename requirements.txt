@@ -1,0 +1,6 @@
+Flask
+Pillow
+pydub
+moviepy
+pypandoc
+moviepy
