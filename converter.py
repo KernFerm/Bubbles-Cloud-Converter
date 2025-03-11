@@ -32,7 +32,6 @@ def convert_image(input_path, output_path, compress=False, advanced=False, optio
         img = Image.open(input_path)
         ext = os.path.splitext(output_path)[1].lower()
         
-        # Advanced compression for JPEG images with target size
         if advanced and 'target_size' in options and ext in ['.jpg', '.jpeg']:
             target_size = options.get('target_size')
             quality = 95
@@ -56,7 +55,6 @@ def convert_image(input_path, output_path, compress=False, advanced=False, optio
                 img.save(output_path, quality=min_quality)
                 logger.info("Image converted with advanced compression at minimum quality %s", min_quality)
                 return True, f"Image converted with advanced compression (min quality={min_quality})"
-        # Basic compression for JPEG images
         elif compress and ext in ['.jpg', '.jpeg']:
             quality = options.get('quality', 85)
             img.save(output_path, quality=quality)
@@ -97,7 +95,7 @@ def convert_audio(input_path, output_path, advanced=False, options=None):
                     f.write(best_data)
                 logger.info("Audio converted with advanced compression at bitrate %s", chosen_bitrate)
                 return True, f"Audio converted with advanced compression (bitrate={chosen_bitrate})"
-            audio.export(output_path, format=fmt, bitrate=candidate_bitrates[-1])
+            audio.export(output_filepath, format=fmt, bitrate=candidate_bitrates[-1])
             logger.info("Audio converted with advanced compression at minimum bitrate %s", candidate_bitrates[-1])
             return True, f"Audio converted with advanced compression (minimum bitrate={candidate_bitrates[-1]})"
         else:
