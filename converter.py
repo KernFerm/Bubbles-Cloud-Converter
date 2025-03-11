@@ -1,5 +1,6 @@
 import os
 import shutil
+import uuid
 from io import BytesIO
 from PIL import Image
 from pydub import AudioSegment
@@ -81,7 +82,6 @@ def convert_audio(input_path, output_path, advanced=False, options=None):
             audio.export(output_path, format=fmt, bitrate=candidate_bitrates[-1])
             return True, f"Audio converted with advanced compression (minimum bitrate={candidate_bitrates[-1]})"
         else:
-            # Use target_bitrate if provided (basic advanced option)
             export_args = {}
             if 'target_bitrate' in options:
                 export_args['bitrate'] = options['target_bitrate']
@@ -119,7 +119,8 @@ def convert_video(input_path, output_path, advanced=False, options=None):
             chosen_bitrate = None
             best_success = False
             for br in candidate_bitrates:
-                temp_out = output_path + ".temp"
+                # Use a unique temporary file name
+                temp_out = output_path + "." + uuid.uuid4().hex + ".temp"
                 write_kwargs['bitrate'] = br
                 clip.write_videofile(temp_out, codec=codec, audio_codec='aac', **write_kwargs, verbose=False, logger=None)
                 if os.path.exists(temp_out):
@@ -135,7 +136,6 @@ def convert_video(input_path, output_path, advanced=False, options=None):
                 clip.close()
                 return True, f"Video converted with advanced compression (bitrate={chosen_bitrate})"
             else:
-                # Use the lowest candidate if none met target size
                 clip.write_videofile(output_path, codec=codec, audio_codec='aac', bitrate=candidate_bitrates[-1], **write_kwargs)
                 clip.close()
                 return True, f"Video converted with advanced compression (minimum bitrate={candidate_bitrates[-1]})"
