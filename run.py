@@ -186,7 +186,7 @@ def api_convert():
         return jsonify(success=True, message=result[1], download_url=download_url)
     except Exception as e:
         logging.exception("Unexpected error in API conversion")
-        return jsonify(success=False, message=str(e)), 500
+        return jsonify(success=False, message="An unexpected error occurred. Please try again later."), 500
 
 @app.route('/download/<filename>')
 def download_file(filename):
