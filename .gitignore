@@ -42,6 +42,7 @@ venv.bak/
 # Logs & Coverage
 # -----------------------------
 *.log
+app.log
 .coverage
 .tox/
 .nox/
@@ -61,9 +62,16 @@ uploads/
 converted/
 
 # -----------------------------
-# Local Config
+# Local Config & Sensitive Files
 # -----------------------------
 .env
+config.json
+
+# -----------------------------
+# Celery Files
+# -----------------------------
+celerybeat-schedule
+celerybeat.pid
 
 # -----------------------------
 # IDE/Editor Files
