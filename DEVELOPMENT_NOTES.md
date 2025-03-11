@@ -8,7 +8,7 @@ This document outlines the current state of the **Bubbles Cloud Converter** proj
 
 ### 1. Asynchronous Processing with Celery
 - **What Changed:**  
-  Heavy conversion tasks are now processed asynchronously using Celery (with Redis as the message broker). This offloads conversion work from the web request, keeping the interface responsive.
+  Heavy conversion tasks are now processed asynchronously using Celery (with Redis as the message broker). Conversion tasks are queued and offloaded to worker processes, keeping the web interface responsive.
 - **Benefit:**  
   Improved responsiveness and scalability for resource-intensive conversions.
 
@@ -20,15 +20,15 @@ This document outlines the current state of the **Bubbles Cloud Converter** proj
 
 ### 3. Improved Logging & Error Handling
 - **What Changed:**  
-  Logging has been integrated using Python’s logging module with a RotatingFileHandler. Key events and errors are recorded in `app.log` for easier debugging and monitoring.
+  Logging has been integrated using Python’s logging module with a RotatingFileHandler. Detailed logs are recorded in `app.log` to aid in debugging and monitoring.
 - **Benefit:**  
-  Provides structured, persistent logging that aids in troubleshooting and long-term analysis.
+  Provides structured, persistent logging that simplifies troubleshooting and long-term analysis while ensuring that sensitive error details are not exposed to users.
 
 ### 4. Secure Configuration & File Handling
 - **What Changed:**  
-  The secret key is now stored in a separate `config.json` file rather than being hardcoded. Uploaded filenames are sanitized using Werkzeug’s `secure_filename()`, and unique UUID prefixes are added to file names.
+  The secret key is now stored in a separate `config.json` file instead of being hardcoded. Uploaded filenames are sanitized using Werkzeug’s `secure_filename()`, and unique UUID prefixes are added to file names to prevent collisions.
 - **Benefit:**  
-  Enhances security, prevents potential file overwriting, and mitigates path traversal attacks.
+  Enhances security by preventing path traversal attacks, file overwrites, and accidental exposure of sensitive configuration data.
 
 ---
 
@@ -36,37 +36,37 @@ This document outlines the current state of the **Bubbles Cloud Converter** proj
 
 ### Concurrency & Scalability
 - **Consideration:**  
-  Although asynchronous processing is implemented via Celery, further scalability improvements may be required for high traffic.
+  While asynchronous processing is now handled by Celery, further scalability improvements may be required for high traffic or distributed environments.
 - **Suggestions:**  
   - Optimize task queuing and worker management.
   - Deploy using a production-ready WSGI server (e.g., Gunicorn) with proper worker configuration.
-  - Consider distributed task queues if load increases significantly.
+  - Consider distributed task queues or scaling out the Redis broker if load increases significantly.
 
 ### Further Enhanced File Validation
 - **Consideration:**  
-  While MIME type validation is in place, additional file content checks could further improve security.
+  The current implementation relies on MIME type checks via `python-magic` and file extensions, which may not catch all edge cases.
 - **Suggestions:**  
-  - Implement header analysis or verify magic numbers for specific file types.
-  - Integrate additional libraries or custom checks tailored for high-risk formats.
+  - Implement deeper file content analysis (e.g., header/magic number verification) for critical file types.
+  - Integrate additional libraries or custom validators for high-risk formats.
 
 ### Advanced Logging & Error Reporting
 - **Consideration:**  
-  Current logging captures basic events, but more granular error reporting would be beneficial.
+  Although basic logging is in place, more granular and structured error reporting would enhance monitoring and debugging.
 - **Suggestions:**  
-  - Implement rotating log files with alerting for critical errors.
-  - Store error logs in a centralized logging system for deeper analysis.
-  - Improve error messages and user feedback for better debugging.
+  - Use rotating log files with alerting for critical errors.
+  - Centralize log storage (e.g., using ELK stack or similar) for deeper analysis.
+  - Improve user feedback by returning generic error messages while logging detailed errors securely.
 
 ---
 
 ## Known Limitations
 
 - **Resource Intensive Conversions:**  
-  Iterative compression methods (for images, audio, and video) can be CPU- and memory-intensive for very large files.
+  Iterative compression methods for images, audio, and video can be CPU- and memory-intensive for very large files.
 - **Basic Security Checks:**  
-  Although file type validation is enhanced, further measures such as rate limiting, file size restrictions, and user authentication are recommended for public deployments.
+  Although file type validation has improved, additional security measures such as rate limiting, file size restrictions, and user authentication are recommended for public deployments.
 - **Testing & Metrics:**  
-  The project currently lacks extensive automated tests and usage metrics. Future updates should address these to improve reliability and performance monitoring.
+  The project currently lacks comprehensive automated tests and usage metrics. Future updates should include these to improve reliability and performance monitoring.
 
 ---
 
@@ -79,8 +79,8 @@ This document outlines the current state of the **Bubbles Cloud Converter** proj
 - **Documentation:**  
   Update this document and other relevant documentation as improvements are made.
 - **Pull Requests:**  
-  Fork the repository and submit pull requests with clear commit messages and references to any related issues.
+  Fork the repository and submit pull requests with clear commit messages and references to related issues.
 
-Your contributions and feedback are invaluable in making Bubbles Cloud Converter more robust and feature-rich. Thank you for helping improve the project!
+Your contributions and feedback are invaluable in making Bubbles Cloud Converter more robust, secure, and feature-rich. Thank you for helping improve the project!
 
 ---
