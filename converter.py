@@ -34,18 +34,18 @@ def convert_image(input_path, output_path, compress=False, advanced=False, optio
             if best_data:
                 with open(output_path, 'wb') as f:
                     f.write(best_data)
-                logger.info("Image converted with advanced compression at quality %s", quality)
+                logger.info(f"Image converted with advanced compression at quality {quality}")
                 return True, f"Image converted with advanced compression (quality={quality})"
             else:
                 img.save(output_path, quality=min_quality)
-                logger.info("Image converted with advanced compression at minimum quality %s", min_quality)
+                logger.info(f"Image converted with advanced compression at minimum quality {min_quality}")
                 return True, f"Image converted with advanced compression (min quality={min_quality})"
         elif compress and ext in ['.jpg', '.jpeg']:
             quality = options.get('quality', 85)
             img.save(output_path, quality=quality)
         else:
             img.save(output_path)
-        logger.info("Image conversion successful for %s", output_path)
+        logger.info(f"Image conversion successful for {output_path}")
         return True, "Image conversion successful"
     except Exception as e:
         logger.exception("Error converting image")
@@ -73,17 +73,17 @@ def convert_audio(input_path, output_path, advanced=False, options=None):
             if best_data:
                 with open(output_path, 'wb') as f:
                     f.write(best_data)
-                logger.info("Audio converted with advanced compression at bitrate %s", chosen_bitrate)
+                logger.info(f"Audio converted with advanced compression at bitrate {chosen_bitrate}")
                 return True, f"Audio converted with advanced compression (bitrate={chosen_bitrate})"
             audio.export(output_path, format=fmt, bitrate=candidate_bitrates[-1])
-            logger.info("Audio converted with advanced compression at minimum bitrate %s", candidate_bitrates[-1])
+            logger.info(f"Audio converted with advanced compression at minimum bitrate {candidate_bitrates[-1]}")
             return True, f"Audio converted with advanced compression (minimum bitrate={candidate_bitrates[-1]})"
         else:
             export_args = {}
             if 'target_bitrate' in options:
                 export_args['bitrate'] = options['target_bitrate']
             audio.export(output_path, format=fmt, **export_args)
-            logger.info("Audio conversion successful for %s", output_path)
+            logger.info(f"Audio conversion successful for {output_path}")
             return True, "Audio conversion successful"
     except Exception as e:
         logger.exception("Error converting audio")
@@ -95,18 +95,26 @@ def convert_video(input_path, output_path, advanced=False, options=None):
     try:
         clip = VideoFileClip(input_path)
         ext = os.path.splitext(output_path)[1].replace('.', '').lower()
-        codec = 'libx264' if ext == 'mp4' else None
-        
+        codec = 'libx264'  # Default codec
         write_kwargs = {}
+
         if advanced:
             if 'target_resolution' in options:
-                write_kwargs['target_resolution'] = options['target_resolution']
+                write_kwargs['resolution'] = options['target_resolution']
             if 'target_bitrate' in options:
                 write_kwargs['bitrate'] = options['target_bitrate']
-        
+            
+            # Choose GPU based on user preference set in options
+            if 'gpu' in options:
+                if options['gpu'] == 'nvidia':
+                    codec = 'h264_nvenc'  # Use NVIDIA's hardware encoder
+                elif options['gpu'] == 'amd':
+                    codec = 'h264_vaapi'  # Use AMD's hardware encoder
+                    write_kwargs['ffmpeg_params'] = ['-vaapi_device', '/dev/dri/renderD128', '-vf', 'format=nv12|vaapi,hwupload']
+
         clip.write_videofile(output_path, codec=codec, audio_codec='aac', **write_kwargs)
         clip.close()
-        logger.info("Video conversion successful for %s", output_path)
+        logger.info(f"Video conversion successful for {output_path}")
         return True, "Video conversion successful"
     except Exception as e:
         logger.exception("Error converting video")
@@ -118,7 +126,7 @@ def convert_document(input_path, output_path, advanced=False, options=None):
         output = pypandoc.convert_file(input_path, to=ext)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(output)
-        logger.info("Document conversion successful for %s", output_path)
+        logger.info(f"Document conversion successful for {output_path}")
         return True, "Document conversion successful"
     except Exception as e:
         logger.exception("Error converting document")
@@ -127,7 +135,7 @@ def convert_document(input_path, output_path, advanced=False, options=None):
 def fallback_convert(input_path, output_path, advanced=False, options=None):
     try:
         shutil.copy(input_path, output_path)
-        logger.info("Fallback conversion: file copied to %s", output_path)
+        logger.info(f"Fallback conversion: file copied to {output_path}")
         return True, "File copied without conversion (unsupported file type)"
     except Exception as e:
         logger.exception("Error in fallback conversion")
