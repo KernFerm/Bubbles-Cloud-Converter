@@ -41,6 +41,11 @@
       font-size: 0.9rem;
       color: #6c757d;
     }
+    /* Style for the loading spinner */
+    .spinner-border {
+      display: none; /* Hidden by default */
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -54,16 +59,6 @@
       <h1 class="text-center">Convert Your Files</h1>
       <p class="text-center">Upload your file, choose your output name, and select compression options if needed.</p>
     </div>
-
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="alert alert-warning" role="alert">
-          {% for message in messages %}
-            <p>{{ message }}</p>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
 
     <div class="card shadow-sm mb-4">
       <div class="card-body">
@@ -104,6 +99,9 @@
               <input type="text" class="form-control" id="target_resolution" name="target_resolution" placeholder="e.g. 1280x720">
             </div>
           </div>
+          <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
           <button type="submit" class="btn btn-primary btn-block mt-3">Convert</button>
         </form>
       </div>
@@ -115,8 +113,13 @@
     &copy; 2025 Bubbles Cloud Converter. All rights reserved.
   </div>
 
-  <!-- JavaScript -->
+  <!-- JavaScript to handle form submission and show loading spinner -->
   <script>
+    const uploadForm = document.getElementById('uploadForm');
+    uploadForm.addEventListener('submit', function() {
+      document.querySelector('.spinner-border').style.display = 'block';
+    });
+
     // Drag and drop functionality for file upload
     const dropzone = document.getElementById('dropzone');
     const fileInput = document.getElementById('file');
