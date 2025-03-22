@@ -5,27 +5,12 @@ from io import BytesIO
 from PIL import Image
 from pydub import AudioSegment
 import logging
-from celery import Celery
+from moviepy.editor import VideoFileClip
+import pypandoc
 
 logger = logging.getLogger(__name__)
 
-# Initialize Celery with Redis broker (ensure Redis is running)
-celery = Celery('BubblesCloudConverter', broker='redis://localhost:6379/0')
-
-@celery.task
-def async_convert(input_path, output_path, compress, advanced, options):
-    """
-    Asynchronous Celery task that wraps the file conversion.
-    Returns a tuple (success: bool, message: str)
-    """
-    return convert_file(input_path, output_path, compress=compress, advanced=advanced, options=options)
-
 def convert_image(input_path, output_path, compress=False, advanced=False, options=None):
-    """
-    Convert an image to the desired format.
-    Supports basic compression (JPEG quality) and advanced compression via iterative quality reduction
-    to meet a target file size.
-    """
     if options is None:
         options = {}
     try:
@@ -67,11 +52,6 @@ def convert_image(input_path, output_path, compress=False, advanced=False, optio
         return False, str(e)
 
 def convert_audio(input_path, output_path, advanced=False, options=None):
-    """
-    Convert an audio file.
-    Allows specifying a target bitrate if advanced compression is enabled.
-    If a target file size is provided, iteratively reduce bitrate.
-    """
     if options is None:
         options = {}
     try:
@@ -110,15 +90,9 @@ def convert_audio(input_path, output_path, advanced=False, options=None):
         return False, str(e)
 
 def convert_video(input_path, output_path, advanced=False, options=None):
-    """
-    Convert a video file using MoviePy.
-    Supports additional formats and, if advanced options are provided,
-    target resolution, bitrate, and iterative bitrate reduction if target file size is provided.
-    """
     if options is None:
         options = {}
     try:
-        from moviepy.editor import VideoFileClip
         clip = VideoFileClip(input_path)
         ext = os.path.splitext(output_path)[1].replace('.', '').lower()
         codec = 'libx264' if ext == 'mp4' else None
@@ -130,49 +104,16 @@ def convert_video(input_path, output_path, advanced=False, options=None):
             if 'target_bitrate' in options:
                 write_kwargs['bitrate'] = options['target_bitrate']
         
-        if advanced and 'target_size' in options:
-            target_size = options.get('target_size')
-            candidate_bitrates = ["2500k", "2000k", "1500k", "1000k", "500k"]
-            chosen_bitrate = None
-            best_success = False
-            for br in candidate_bitrates:
-                temp_out = output_path + "." + uuid.uuid4().hex + ".temp"
-                write_kwargs['bitrate'] = br
-                clip.write_videofile(temp_out, codec=codec, audio_codec='aac', **write_kwargs, verbose=False, logger=None)
-                if os.path.exists(temp_out):
-                    size = os.path.getsize(temp_out)
-                    if size <= target_size:
-                        chosen_bitrate = br
-                        os.rename(temp_out, output_path)
-                        best_success = True
-                        break
-                    else:
-                        os.remove(temp_out)
-            if best_success:
-                clip.close()
-                logger.info("Video converted with advanced compression at bitrate %s", chosen_bitrate)
-                return True, f"Video converted with advanced compression (bitrate={chosen_bitrate})"
-            else:
-                clip.write_videofile(output_path, codec=codec, audio_codec='aac', bitrate=candidate_bitrates[-1], **write_kwargs)
-                clip.close()
-                logger.info("Video converted with advanced compression at minimum bitrate %s", candidate_bitrates[-1])
-                return True, f"Video converted with advanced compression (minimum bitrate={candidate_bitrates[-1]})"
-        else:
-            clip.write_videofile(output_path, codec=codec, audio_codec='aac', **write_kwargs)
-            clip.close()
-            logger.info("Video conversion successful for %s", output_path)
-            return True, "Video conversion successful"
+        clip.write_videofile(output_path, codec=codec, audio_codec='aac', **write_kwargs)
+        clip.close()
+        logger.info("Video conversion successful for %s", output_path)
+        return True, "Video conversion successful"
     except Exception as e:
         logger.exception("Error converting video")
         return False, str(e)
 
 def convert_document(input_path, output_path, advanced=False, options=None):
-    """
-    Convert a document using pypandoc.
-    Advanced compression options are not applicable for document conversion.
-    """
     try:
-        import pypandoc
         ext = os.path.splitext(output_path)[1].replace('.', '')
         output = pypandoc.convert_file(input_path, to=ext)
         with open(output_path, 'w', encoding='utf-8') as f:
@@ -184,9 +125,6 @@ def convert_document(input_path, output_path, advanced=False, options=None):
         return False, str(e)
 
 def fallback_convert(input_path, output_path, advanced=False, options=None):
-    """
-    Fallback conversion: simply copy the file if no conversion is supported.
-    """
     try:
         shutil.copy(input_path, output_path)
         logger.info("Fallback conversion: file copied to %s", output_path)
@@ -196,13 +134,6 @@ def fallback_convert(input_path, output_path, advanced=False, options=None):
         return False, str(e)
 
 def convert_file(input_path, output_path, compress=False, advanced=False, options=None):
-    """
-    Determine file type and perform conversion.
-    Supports images, audio, video, documents (including spreadsheets and presentations),
-    and falls back to a copy if conversion is unsupported.
-    """
-    if options is None:
-        options = {}
     ext = os.path.splitext(input_path)[1].lower()
     if ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']:
         return convert_image(input_path, output_path, compress=compress, advanced=advanced, options=options)
