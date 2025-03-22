@@ -8,8 +8,7 @@ We maintain active support for the latest major release of Bubbles Cloud Convert
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:               |
+| 1.5.102   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
