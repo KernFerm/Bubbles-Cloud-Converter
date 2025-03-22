@@ -1,144 +1,72 @@
 # Bubbles Cloud Converter 🫧☁️
 
-Bubbles Cloud Converter is a robust, asynchronous, web-based file conversion platform built to mimic CloudConvert’s functionality. With this tool, you can:
-
-- **Upload and convert a wide range of file types:**  
-  Convert images (`PNG`, `JPEG`, `BMP`, `GIF`, `TIFF`), audio (`MP3`, `WAV`, `FLAC`, `OGG`, `AAC`), video (`MP4`, `AVI`, `MKV`, `MOV`, `WMV`, `MPEG/MPG`), documents (`DOC`, `DOCX`, `ODT`, `TXT`, `HTML`, `MD`, `PDF`, `XLS`, `XLSX`, `PPT`, `PPTX`, `CSV`), and **more**.
-
-- **Customize output file names:**  
-  Save your converted file with any name and extension you choose.
-
-- **Apply compression options:**  
-  Use basic compression (e.g. JPEG quality) or enable advanced compression. Advanced options include:
-  - Iterative quality reduction for images to meet a target file size.
-  - Iterative bitrate reduction for audio and video if a target file size is specified.
-  - Specifying target resolutions for video.
-
-- **Asynchronous Processing:**  
-  Heavy conversion tasks are processed asynchronously using Celery (with Redis as the message broker), keeping the web interface responsive.
-
-- **Enhanced File Type Validation:**  
-  Utilizes `python-magic` to validate the MIME type of uploaded files against their extension.
-
-- **Robust Logging:**  
-  Logs are managed with a Rotating File Handler, ensuring persistent log management and easier debugging.
-
-- **REST API Endpoints:**  
-  Convert files programmatically via a JSON-based API at `/api/convert`.
-
-- **User-Friendly Web Interface:**  
-  An intuitive drag-and-drop file upload system with advanced options toggling.
+Bubbles Cloud Converter is a robust, web-based file conversion platform built to provide local, synchronous file conversion services. This tool allows for the direct processing of various file types, ensuring quick and efficient handling directly within the application.
 
 ## Features ✨
 
-- **Multi-Format Conversion:**  
-  Robust handling for images, audio, video, and document file formats (including spreadsheets and presentations).
+- **Upload and convert a wide range of file types:**  
+  Convert images (`PNG`, `JPEG`, `BMP`, `GIF`, `TIFF`), audio (`MP3`, `WAV`, `FLAC`, `OGG`, `AAC`), video (`MP4`, `AVI`, `MKV`, `MOV`, `WMV`, `MPEG/MPG`), and documents (`DOC`, `DOCX`, `ODT`, `TXT`, `HTML`, `MD`, `PDF`, `XLS`, `XLSX`, `PPT`, `PPTX`, `CSV`).
 
-- **Advanced Compression Options:**  
-  Iterative adjustments of quality or bitrate to meet target file sizes.
+- **Customize output file names:**  
+  Save your converted files with any name and extension you choose.
 
-- **Asynchronous Conversion:**  
-  Conversion tasks are offloaded to a Celery worker, preventing blocking of web requests.
+- **Apply compression options:**  
+  Utilize settings to adjust the quality and size of the output, including basic and advanced compression options.
 
-- **Enhanced Validation & Logging:**  
-  Validates file types using `python-magic` and logs events using a RotatingFileHandler.
+- **File Type Validation:**  
+  Uses `python-magic` to validate the MIME type of uploaded files, ensuring accurate processing.
 
-- **REST API:**  
-  Easily integrate conversion functionality into your own applications with JSON responses and download URLs.
+- **User-Friendly Web Interface:**  
+  A simple drag-and-drop interface for file uploads with an option to toggle advanced settings.
 
 ## Requirements 📋
 
-- **Python 3.11.9**
-- **ffmpeg:**  
-  Required by [pydub](https://github.com/jiaaro/pydub) and [moviepy](https://zulko.github.io/moviepy/) for audio and video conversion.  
-  [Download ffmpeg](https://ffmpeg.org/download.html) and add it to your system PATH.
-- **pandoc:**  
-  Required by [pypandoc](https://pypi.org/project/pypandoc/) for document conversion.
-- **Redis:**  
-  Required as the Celery message broker.
-- Python packages listed in `requirements.txt`.
+- **Python 3.x**
+- **Flask**: For running the web server.
+- **Pillow**: For image processing.
+- **pydub**: For audio processing.
+- **moviepy**: For video processing.
+- **pypandoc**: For document conversion.
+- **python-magic**: For file type validation.
+- **werkzeug**: Utility library for Flask.
 
 ## Installation 🛠️
 
 1. **Clone the Repository:**
-
 ```bash
-git clone https://github.com/kernferm/Bubbles-Cloud-Converter
+git clone https://github.com/yourgithub/Bubbles-Cloud-Converter
 cd Bubbles-Cloud-Converter
 ```
 
-2. **Create a Virtual Environment and Install Dependencies**:
+2. Create a Virtual Environment and Install Dependencies:
 
 ```bash
 python -m venv venv
-# Activate the virtual environment:
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
+source venv/bin/activate  # On Unix/macOS
+venv\Scripts\activate  # On Windows
 pip install -r requirements.txt
 ```
 
-3. **Configure the Application**:
+3. Configure the Application: Create a config.json in the root directory with your configuration, such as:
 
-Create a `config.json` file in the root directory with your configuration, for example:
-
-```json
+```bash
 {
-  "SECRET_KEY": "your-secret-key"
+    "SECRET_KEY": "your-secret-key"
 }
 ```
 
-4. **Run Redis**:
+Run the Application:
 
-- Ensure a Redis server is running locally (or update the Celery broker URL in the code accordingly).
-
-- **Start the Celery Worker**:
-### In a separate terminal window, run:
-
-```
-celery -A run.celery worker --loglevel=info
-```
-
-6. **Run the Application**:
-
-```
+```bash
 python run.py
 ```
+- Access the web interface by navigating to `http://localhost:5000` in your web browser.
 
-- **Access the Web Interface**:
+## Usage 📡
 
-Open your browser and navigate to http://localhost:5000.
+To convert a file, simply drag and drop your file into the web interface and select the desired output format and any compression options. The file will be processed, and a download link will be provided upon completion.
 
 
-## REST API Usage 📡
 
-Send a POST request to `/api/convert` with the following form-data parameters:
 
-- `file`: (required) the file to convert.
-- `output_filename`: (optional) desired output file name with extension.
-- `compress`: (required) `"y"` for basic compression or `"n"` otherwise.
-- `advanced`: (optional) `"y"` to enable advanced compression options.
-- `target_size`: (optional) for images, audio, or video, target file size in KB.
-- `target_bitrate`: (optional) target bitrate for `audio/video` (e.g., `192k`).
-- `target_resolution`: (optional) for video, target resolution in the format `widthxheight` (e.g., `1280x720`).
 
-- The API returns a JSON response with a `download_url` for the converted file.
-
-## Extending the Utility 🚀
-
-- **Additional File Formats**:
-Extend `converter.py` to support more specialized file formats if needed.
-
-- **Enhanced Compression**:
-Tune the advanced compression loops further to meet specific quality or size targets.
-
-- **API Enhancements**:
-Extend or secure the REST API for additional functionalities, such as authentication or rate limiting.
-
-- **Scalability**:
-Consider integrating additional asynchronous processing or job queue systems for high load.
-
----
-# Happy converting with Bubbles Cloud Converter! 🎉
----
