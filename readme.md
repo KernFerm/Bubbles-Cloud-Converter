@@ -21,7 +21,7 @@ Bubbles Cloud Converter is a robust, web-based file conversion platform built to
 
 ## Requirements 📋
 
-- **Python 3.x**
+- **Python 3.11.9**
 - **Flask**: For running the web server.
 - **Pillow**: For image processing.
 - **pydub**: For audio processing.
