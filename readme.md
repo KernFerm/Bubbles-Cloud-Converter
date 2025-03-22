@@ -43,30 +43,35 @@ cd Bubbles-Cloud-Converter
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Unix/macOS
-venv\Scripts\activate  # On Windows
+venv\Scripts\activate     # On Windows
 pip install -r requirements.txt
 ```
 
-3. Configure the Application: Create a config.json in the root directory with your configuration, such as:
+3. Generate a Secure Secret Key: Run this Python script to create a secure random key:
 
 ```bash
+import secrets
+print(secrets.token_hex(32))  # Outputs a 64-character hex string
+```
+
+4. Create a config.json file in the project root directory and add your generated key:
+
+```json
 {
-    "SECRET_KEY": "your-secret-key"
+    "SECRET_KEY": "paste-your-generated-hex-key-here"
 }
 ```
 
-Run the Application:
+5. Run the Application:
 
 ```bash
 python run.py
 ```
-- Access the web interface by navigating to `http://localhost:5000` in your web browser.
+- Open your browser and visit: 👉 `http://localhost:5000`
 
 ## Usage 📡
 
 To convert a file, simply drag and drop your file into the web interface and select the desired output format and any compression options. The file will be processed, and a download link will be provided upon completion.
 
-
-
-
-
+---
+---
