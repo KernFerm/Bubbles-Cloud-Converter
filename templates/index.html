@@ -6,12 +6,12 @@
   <!-- Using Bootstrap 4 CDN -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
   <style>
-    body { 
-      padding-top: 70px; 
-      background-color: #f8f9fa; 
+    body {
+      padding-top: 70px;
+      background-color: #f8f9fa;
     }
-    .container { 
-      max-width: 600px; 
+    .container {
+      max-width: 600px;
     }
     .dropzone {
       border: 2px dashed #007bff;
@@ -41,9 +41,8 @@
       font-size: 0.9rem;
       color: #6c757d;
     }
-    /* Style for the loading spinner */
     .spinner-border {
-      display: none; /* Hidden by default */
+      display: none;
       margin-top: 10px;
     }
   </style>
@@ -98,6 +97,14 @@
               <label for="target_resolution"><strong>Target Resolution</strong> [For Video] (e.g., 1280x720):</label>
               <input type="text" class="form-control" id="target_resolution" name="target_resolution" placeholder="e.g. 1280x720">
             </div>
+            <div class="form-group">
+              <label for="gpu"><strong>GPU Acceleration</strong> (Optional):</label>
+              <select class="form-control" id="gpu" name="gpu">
+                <option value="">None</option>
+                <option value="nvidia">NVIDIA</option>
+                <option value="amd">AMD</option>
+              </select>
+            </div>
           </div>
           <div class="spinner-border" role="status">
             <span class="sr-only">Loading...</span>
@@ -113,46 +120,36 @@
     &copy; 2025 Bubbles Cloud Converter. All rights reserved.
   </div>
 
-  <!-- JavaScript to handle form submission and show loading spinner -->
+  <!-- JavaScript -->
   <script>
     const uploadForm = document.getElementById('uploadForm');
-    uploadForm.addEventListener('submit', function() {
+    uploadForm.addEventListener('submit', function () {
       document.querySelector('.spinner-border').style.display = 'block';
     });
 
-    // Drag and drop functionality for file upload
     const dropzone = document.getElementById('dropzone');
     const fileInput = document.getElementById('file');
 
-    dropzone.addEventListener('click', () => {
-      fileInput.click();
-    });
-
+    dropzone.addEventListener('click', () => fileInput.click());
     dropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
-      e.stopPropagation();
       dropzone.classList.add('hover');
     });
-
     dropzone.addEventListener('dragleave', (e) => {
       e.preventDefault();
-      e.stopPropagation();
       dropzone.classList.remove('hover');
     });
-
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
-      e.stopPropagation();
       dropzone.classList.remove('hover');
       if (e.dataTransfer.files.length) {
         fileInput.files = e.dataTransfer.files;
       }
     });
 
-    // Toggle advanced options display
     const advancedCheckbox = document.getElementById('advanced');
     const advancedOptions = document.getElementById('advancedOptions');
-    advancedCheckbox.addEventListener('change', function() {
+    advancedCheckbox.addEventListener('change', function () {
       advancedOptions.style.display = this.checked ? 'block' : 'none';
     });
   </script>
