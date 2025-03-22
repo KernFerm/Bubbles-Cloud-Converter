@@ -64,7 +64,7 @@ def convert():
               (detected_type.startswith("audio/") and ext in ['.mp3', '.wav', '.flac', '.ogg', '.aac']) or \
               (detected_type.startswith("video/") and ext in ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.mpeg', '.mpg']) or \
               ext in ['.doc', '.docx', '.odt', '.txt', '.html', '.md', '.pdf', '.xls', '.xlsx', '.ppt', '.pptx', '.csv']
-    
+
     if not allowed:
         logging.error("File type validation failed: extension %s but detected mime type %s", ext, detected_type)
         return "Error: File type does not match its extension", 400
@@ -72,12 +72,12 @@ def convert():
     output_filename = request.form.get('output_filename', '').strip()
     compress = request.form.get('compress', 'n') == 'y'
     advanced = request.form.get('advanced', 'n') == 'y'
-    
+
     options = {
         'target_size': int(float(request.form.get('target_size', 0)) * 1024) if request.form.get('target_size') else None,
         'target_bitrate': request.form.get('target_bitrate'),
         'target_resolution': tuple(map(int, request.form.get('target_resolution', '0x0').split('x'))) if 'x' in request.form.get('target_resolution', '') else None,
-        'gpu': request.form.get('gpu', '').lower()  # Support 'nvidia', 'amd', or empty string
+        'gpu': request.form.get('gpu', '').lower()
     }
 
     unique_prefix = uuid.uuid4().hex
@@ -97,4 +97,5 @@ def convert():
                                as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Run Flask securely without debug mode
+    app.run(host='0.0.0.0', port=5000, debug=False)
