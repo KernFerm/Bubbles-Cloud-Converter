@@ -51,30 +51,24 @@ coverage.xml
 htmlcov/
 
 # -----------------------------
-# Flask Folders
+# Flask Specific
 # -----------------------------
 instance/
-
-# -----------------------------
-# Upload/Converted Folders
-# -----------------------------
 uploads/
 converted/
 
 # -----------------------------
-# Local Config & Sensitive Files
+# Sensitive or Local Configs
 # -----------------------------
 .env
+.env.*
 config.json
+secret*.json
+*.key
+*.pem
 
 # -----------------------------
-# Celery Files
-# -----------------------------
-celerybeat-schedule
-celerybeat.pid
-
-# -----------------------------
-# IDE/Editor Files
+# IDE/Editor Settings
 # -----------------------------
 .idea/
 .vscode/
