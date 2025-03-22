@@ -10,13 +10,19 @@ import pypandoc
 
 logger = logging.getLogger(__name__)
 
+# Define allowed base directory for output paths
+SAFE_OUTPUT_DIR = os.path.abspath(os.path.join(os.getcwd(), 'converted'))
+
+def is_safe_path(base_dir, path):
+    return os.path.commonprefix([os.path.abspath(path), base_dir]) == base_dir
+
 def convert_image(input_path, output_path, compress=False, advanced=False, options=None):
     if options is None:
         options = {}
     try:
         img = Image.open(input_path)
         ext = os.path.splitext(output_path)[1].lower()
-        
+
         if advanced and 'target_size' in options and ext in ['.jpg', '.jpeg']:
             target_size = options.get('target_size')
             quality = 95
@@ -95,7 +101,7 @@ def convert_video(input_path, output_path, advanced=False, options=None):
     try:
         clip = VideoFileClip(input_path)
         ext = os.path.splitext(output_path)[1].replace('.', '').lower()
-        codec = 'libx264'  # Default codec
+        codec = 'libx264'
         write_kwargs = {}
 
         if advanced:
@@ -103,13 +109,11 @@ def convert_video(input_path, output_path, advanced=False, options=None):
                 write_kwargs['resolution'] = options['target_resolution']
             if 'target_bitrate' in options:
                 write_kwargs['bitrate'] = options['target_bitrate']
-            
-            # Choose GPU based on user preference set in options
             if 'gpu' in options:
                 if options['gpu'] == 'nvidia':
-                    codec = 'h264_nvenc'  # Use NVIDIA's hardware encoder
+                    codec = 'h264_nvenc'
                 elif options['gpu'] == 'amd':
-                    codec = 'h264_vaapi'  # Use AMD's hardware encoder
+                    codec = 'h264_vaapi'
                     write_kwargs['ffmpeg_params'] = ['-vaapi_device', '/dev/dri/renderD128', '-vf', 'format=nv12|vaapi,hwupload']
 
         clip.write_videofile(output_path, codec=codec, audio_codec='aac', **write_kwargs)
@@ -134,9 +138,9 @@ def convert_document(input_path, output_path, advanced=False, options=None):
 
 def fallback_convert(input_path, output_path, advanced=False, options=None):
     try:
-        output_path = os.path.normpath(output_path)
-        if not output_path.startswith(app.config['CONVERTED_FOLDER']):
-            raise Exception("Invalid output path")
+        output_path = os.path.normpath(output_path)
+        if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
+            raise ValueError("Invalid output path")
         shutil.copy(input_path, output_path)
         logger.info(f"Fallback conversion: file copied to {output_path}")
         return True, "File copied without conversion (unsupported file type)"
@@ -145,9 +149,9 @@ def fallback_convert(input_path, output_path, advanced=False, options=None):
         return False, str(e)
 
 def convert_file(input_path, output_path, compress=False, advanced=False, options=None):
-    output_path = os.path.normpath(output_path)
-    if not output_path.startswith(app.config['CONVERTED_FOLDER']):
-        raise Exception("Invalid output path")
+    output_path = os.path.normpath(output_path)
+    if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
+        raise ValueError("Invalid output path")
     ext = os.path.splitext(input_path)[1].lower()
     if ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']:
         return convert_image(input_path, output_path, compress=compress, advanced=advanced, options=options)
