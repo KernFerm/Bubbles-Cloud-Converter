@@ -98,9 +98,9 @@ def convert():
         return "Internal error saving file", 500
 
     success, message = convert_file(input_filepath, output_filepath, compress, advanced, options)
-    if not success:
-        logging.error(f"Conversion failed: {message}")
-        return f"Conversion failed: {message}", 500
+if not success:
+    logging.error("Conversion failed: %s", message)
+    return "An internal error occurred during conversion.", 500
 
     return send_from_directory(app.config['CONVERTED_FOLDER'], os.path.basename(output_filepath), as_attachment=True)
 
