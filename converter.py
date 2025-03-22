@@ -13,8 +13,10 @@ logger = logging.getLogger(__name__)
 # Define allowed base directory for output paths
 SAFE_OUTPUT_DIR = os.path.abspath(os.path.join(os.getcwd(), 'converted'))
 
+
 def is_safe_path(base_dir, path):
-    return os.path.commonprefix([os.path.abspath(path), base_dir]) == base_dir
+    return os.path.commonpath([os.path.abspath(path), base_dir]) == base_dir
+
 
 def convert_image(input_path, output_path, compress=False, advanced=False, options=None):
     if options is None:
@@ -57,6 +59,7 @@ def convert_image(input_path, output_path, compress=False, advanced=False, optio
         logger.exception("Error converting image")
         return False, str(e)
 
+
 def convert_audio(input_path, output_path, advanced=False, options=None):
     if options is None:
         options = {}
@@ -95,6 +98,7 @@ def convert_audio(input_path, output_path, advanced=False, options=None):
         logger.exception("Error converting audio")
         return False, str(e)
 
+
 def convert_video(input_path, output_path, advanced=False, options=None):
     if options is None:
         options = {}
@@ -124,6 +128,7 @@ def convert_video(input_path, output_path, advanced=False, options=None):
         logger.exception("Error converting video")
         return False, str(e)
 
+
 def convert_document(input_path, output_path, advanced=False, options=None):
     try:
         ext = os.path.splitext(output_path)[1].replace('.', '')
@@ -136,6 +141,7 @@ def convert_document(input_path, output_path, advanced=False, options=None):
         logger.exception("Error converting document")
         return False, str(e)
 
+
 def fallback_convert(input_path, output_path, advanced=False, options=None):
     try:
         output_path = os.path.normpath(output_path)
@@ -147,6 +153,7 @@ def fallback_convert(input_path, output_path, advanced=False, options=None):
     except Exception as e:
         logger.exception("Error in fallback conversion")
         return False, str(e)
+
 
 def convert_file(input_path, output_path, compress=False, advanced=False, options=None):
     output_path = os.path.normpath(output_path)
