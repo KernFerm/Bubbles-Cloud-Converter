@@ -14,18 +14,23 @@ logger = logging.getLogger(__name__)
 SAFE_OUTPUT_DIR = os.path.abspath(os.path.join(os.getcwd(), 'converted'))
 SAFE_UPLOAD_DIR = os.path.abspath(os.path.join(os.getcwd(), 'uploads'))
 
+
 def is_safe_path(base_dir, path):
     try:
         return os.path.commonpath([os.path.abspath(path), base_dir]) == base_dir
-    except ValueError:
+    except Exception as e:
+        logger.warning(f"Path safety check failed: {e}")
         return False
+
+def sanitize_path(path):
+    return os.path.normpath(os.path.abspath(path))
 
 def convert_image(input_path, output_path, compress=False, advanced=False, options=None):
     if options is None:
         options = {}
     try:
-        input_path = os.path.abspath(input_path)
-        output_path = os.path.abspath(output_path)
+        input_path = sanitize_path(input_path)
+        output_path = sanitize_path(output_path)
         if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
             raise ValueError("Invalid output path")
 
@@ -70,8 +75,8 @@ def convert_audio(input_path, output_path, advanced=False, options=None):
     if options is None:
         options = {}
     try:
-        input_path = os.path.abspath(input_path)
-        output_path = os.path.abspath(output_path)
+        input_path = sanitize_path(input_path)
+        output_path = sanitize_path(output_path)
         if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
             raise ValueError("Invalid output path")
 
@@ -113,8 +118,8 @@ def convert_video(input_path, output_path, advanced=False, options=None):
     if options is None:
         options = {}
     try:
-        input_path = os.path.abspath(input_path)
-        output_path = os.path.abspath(output_path)
+        input_path = sanitize_path(input_path)
+        output_path = sanitize_path(output_path)
         if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
             raise ValueError("Invalid output path")
 
@@ -145,8 +150,8 @@ def convert_video(input_path, output_path, advanced=False, options=None):
 
 def convert_document(input_path, output_path, advanced=False, options=None):
     try:
-        input_path = os.path.abspath(input_path)
-        output_path = os.path.abspath(output_path)
+        input_path = sanitize_path(input_path)
+        output_path = sanitize_path(output_path)
         if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
             raise ValueError("Invalid output path")
 
@@ -162,8 +167,8 @@ def convert_document(input_path, output_path, advanced=False, options=None):
 
 def fallback_convert(input_path, output_path, advanced=False, options=None):
     try:
-        input_path = os.path.abspath(input_path)
-        output_path = os.path.abspath(output_path)
+        input_path = sanitize_path(input_path)
+        output_path = sanitize_path(output_path)
         if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
             raise ValueError("Invalid output path")
         shutil.copy(input_path, output_path)
@@ -174,8 +179,8 @@ def fallback_convert(input_path, output_path, advanced=False, options=None):
         return False, str(e)
 
 def convert_file(input_path, output_path, compress=False, advanced=False, options=None):
-    input_path = os.path.abspath(input_path)
-    output_path = os.path.abspath(output_path)
+    input_path = sanitize_path(input_path)
+    output_path = sanitize_path(output_path)
     if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
         raise ValueError("Invalid output path")
 
