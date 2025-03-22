@@ -4,36 +4,32 @@ import json
 import logging
 from logging.handlers import RotatingFileHandler
 import werkzeug.utils
-from urllib.parse import urlparse
-import magic  # Requires python-magic
-from flask import Flask, render_template, request, send_from_directory, abort, jsonify, url_for
-from converter import convert_file  # Updated converter.py handles GPU usage
+import magic
+from flask import Flask, render_template, request, send_from_directory, abort
+from converter import convert_file
 
-# Configure logging with RotatingFileHandler
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)s %(message)s')
+# Configure logging securely
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 handler = RotatingFileHandler('app.log', maxBytes=1000000, backupCount=5)
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-handler.setFormatter(formatter)
+handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
 logging.getLogger('').addHandler(handler)
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
-app.config['CONVERTED_FOLDER'] = os.path.join(os.getcwd(), 'converted')
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # Limit file uploads to 50 MB
+app.config['UPLOAD_FOLDER'] = os.path.abspath(os.path.join(os.getcwd(), 'uploads'))
+app.config['CONVERTED_FOLDER'] = os.path.abspath(os.path.join(os.getcwd(), 'converted'))
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB
 
-# Load secret key from config file
+# Load secret key securely
 config_file = os.path.join(os.getcwd(), 'config.json')
 if os.path.exists(config_file):
     with open(config_file, 'r') as f:
         config = json.load(f)
-    app.secret_key = config.get("SECRET_KEY", "default-secret-key")
+    app.secret_key = config.get("SECRET_KEY", os.urandom(24))
 else:
-    app.secret_key = "default-secret-key"
-    logging.warning("config.json not found; using default secret key.")
+    app.secret_key = os.urandom(24)
+    logging.warning("config.json not found; using random secret key.")
 
-# Ensure upload and output directories exist
+# Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['CONVERTED_FOLDER'], exist_ok=True)
 
@@ -47,55 +43,66 @@ def index():
 @app.route('/convert', methods=['POST'])
 def convert():
     if 'file' not in request.files:
-        logging.error("No file part in the request")
-        return "Error: No file part in the request", 400
+        logging.warning("Missing file part in request")
+        return "Missing file", 400
+
     file = request.files['file']
-    if file.filename == '':
-        logging.error("No file selected")
-        return "Error: No file selected", 400
+    if not file or file.filename == '':
+        logging.warning("No file selected")
+        return "No file selected", 400
 
     original_filename = secure_filename(file.filename)
     file.seek(0)
-    detected_type = magic.from_buffer(file.read(1024), mime=True)
+    detected_type = magic.from_buffer(file.read(2048), mime=True)
     file.seek(0)
     ext = os.path.splitext(original_filename)[1].lower()
 
-    allowed = (detected_type.startswith("image/") and ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']) or \
-              (detected_type.startswith("audio/") and ext in ['.mp3', '.wav', '.flac', '.ogg', '.aac']) or \
-              (detected_type.startswith("video/") and ext in ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.mpeg', '.mpg']) or \
-              ext in ['.doc', '.docx', '.odt', '.txt', '.html', '.md', '.pdf', '.xls', '.xlsx', '.ppt', '.pptx', '.csv']
+    # Allowlist validation
+    valid_exts = {
+        'image': ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff'],
+        'audio': ['.mp3', '.wav', '.flac', '.ogg', '.aac'],
+        'video': ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.mpeg', '.mpg'],
+        'doc': ['.doc', '.docx', '.odt', '.txt', '.html', '.md', '.pdf', '.xls', '.xlsx', '.ppt', '.pptx', '.csv']
+    }
 
-    if not allowed:
-        logging.error("File type validation failed: extension %s but detected mime type %s", ext, detected_type)
-        return "Error: File type does not match its extension", 400
+    category = None
+    for key, exts in valid_exts.items():
+        if ext in exts:
+            category = key
+            break
 
-    output_filename = request.form.get('output_filename', '').strip()
+    if not category or not detected_type.startswith(category + '/'):
+        logging.warning(f"Blocked: mismatched MIME type {detected_type} for extension {ext}")
+        return "File type not allowed or mismatched", 400
+
     compress = request.form.get('compress', 'n') == 'y'
     advanced = request.form.get('advanced', 'n') == 'y'
+    output_filename = secure_filename(request.form.get('output_filename', 'converted_' + original_filename))
 
     options = {
         'target_size': int(float(request.form.get('target_size', 0)) * 1024) if request.form.get('target_size') else None,
         'target_bitrate': request.form.get('target_bitrate'),
         'target_resolution': tuple(map(int, request.form.get('target_resolution', '0x0').split('x'))) if 'x' in request.form.get('target_resolution', '') else None,
-        'gpu': request.form.get('gpu', '').lower()
+        'gpu': request.form.get('gpu', '').lower() if request.form.get('gpu') in ['nvidia', 'amd'] else None
     }
 
+    # Construct file paths safely
     unique_prefix = uuid.uuid4().hex
-    input_filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_prefix + "_" + original_filename)
-    file.save(input_filepath)
+    input_filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{unique_prefix}_{original_filename}")
+    output_filepath = os.path.join(app.config['CONVERTED_FOLDER'], f"{unique_prefix}_{output_filename}")
 
-    output_filename = output_filename if output_filename else 'converted_' + original_filename
-    output_filepath = os.path.join(app.config['CONVERTED_FOLDER'], unique_prefix + "_" + output_filename)
+    try:
+        file.save(input_filepath)
+    except Exception as e:
+        logging.exception("Failed to save uploaded file")
+        return "Internal error saving file", 500
 
     success, message = convert_file(input_filepath, output_filepath, compress, advanced, options)
     if not success:
-        logging.error("Conversion error: %s", message)
-        return "Error: Conversion failed", 500
+        logging.error(f"Conversion failed: {message}")
+        return f"Conversion failed: {message}", 500
 
-    return send_from_directory(directory=app.config['CONVERTED_FOLDER'],
-                               path=os.path.basename(output_filepath),
-                               as_attachment=True)
+    return send_from_directory(app.config['CONVERTED_FOLDER'], os.path.basename(output_filepath), as_attachment=True)
 
 if __name__ == '__main__':
-    # Run Flask securely without debug mode
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='127.0.0.1', port=5000, debug=False)
