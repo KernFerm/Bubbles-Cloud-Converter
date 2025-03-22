@@ -7,7 +7,7 @@ import werkzeug.utils
 from urllib.parse import urlparse
 import magic  # Requires python-magic
 from flask import Flask, render_template, request, send_from_directory, abort, jsonify, url_for
-from converter import convert_file  # Make sure to adjust the converter.py as previously discussed
+from converter import convert_file  # Updated converter.py handles GPU usage
 
 # Configure logging with RotatingFileHandler
 logging.basicConfig(level=logging.INFO,
@@ -23,7 +23,7 @@ app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
 app.config['CONVERTED_FOLDER'] = os.path.join(os.getcwd(), 'converted')
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # Limit file uploads to 50 MB
 
-# Load configuration from config.json for sensitive info (like secret key)
+# Load secret key from config file
 config_file = os.path.join(os.getcwd(), 'config.json')
 if os.path.exists(config_file):
     with open(config_file, 'r') as f:
@@ -33,7 +33,7 @@ else:
     app.secret_key = "default-secret-key"
     logging.warning("config.json not found; using default secret key.")
 
-# Ensure required directories exist
+# Ensure upload and output directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['CONVERTED_FOLDER'], exist_ok=True)
 
@@ -53,16 +53,18 @@ def convert():
     if file.filename == '':
         logging.error("No file selected")
         return "Error: No file selected", 400
-    
+
     original_filename = secure_filename(file.filename)
     file.seek(0)
     detected_type = magic.from_buffer(file.read(1024), mime=True)
-    file.seek(0)  # Reset file pointer
+    file.seek(0)
     ext = os.path.splitext(original_filename)[1].lower()
+
     allowed = (detected_type.startswith("image/") and ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']) or \
               (detected_type.startswith("audio/") and ext in ['.mp3', '.wav', '.flac', '.ogg', '.aac']) or \
               (detected_type.startswith("video/") and ext in ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.mpeg', '.mpg']) or \
               ext in ['.doc', '.docx', '.odt', '.txt', '.html', '.md', '.pdf', '.xls', '.xlsx', '.ppt', '.pptx', '.csv']
+    
     if not allowed:
         logging.error("File type validation failed: extension %s but detected mime type %s", ext, detected_type)
         return "Error: File type does not match its extension", 400
@@ -74,17 +76,17 @@ def convert():
     options = {
         'target_size': int(float(request.form.get('target_size', 0)) * 1024) if request.form.get('target_size') else None,
         'target_bitrate': request.form.get('target_bitrate'),
-        'target_resolution': tuple(map(int, request.form.get('target_resolution', '0x0').split('x'))) if 'x' in request.form.get('target_resolution', '') else None
+        'target_resolution': tuple(map(int, request.form.get('target_resolution', '0x0').split('x'))) if 'x' in request.form.get('target_resolution', '') else None,
+        'gpu': request.form.get('gpu', '').lower()  # Support 'nvidia', 'amd', or empty string
     }
 
     unique_prefix = uuid.uuid4().hex
     input_filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_prefix + "_" + original_filename)
     file.save(input_filepath)
-    
+
     output_filename = output_filename if output_filename else 'converted_' + original_filename
     output_filepath = os.path.join(app.config['CONVERTED_FOLDER'], unique_prefix + "_" + output_filename)
 
-    # Perform the conversion
     success, message = convert_file(input_filepath, output_filepath, compress, advanced, options)
     if not success:
         logging.error("Conversion error: %s", message)
