@@ -3,8 +3,5 @@ Pillow
 pydub
 moviepy
 pypandoc
-moviepy
 python-magic
-Celery
-RQ
 werkzeug
