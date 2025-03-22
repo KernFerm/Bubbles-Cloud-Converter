@@ -7,7 +7,7 @@ import werkzeug.utils
 from urllib.parse import urlparse
 import magic  # Requires python-magic
 from flask import Flask, render_template, request, send_from_directory, abort, jsonify, url_for
-from converter import convert_file, async_convert
+from converter import convert_file  # Make sure to adjust the converter.py as previously discussed
 
 # Configure logging with RotatingFileHandler
 logging.basicConfig(level=logging.INFO,
@@ -38,7 +38,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['CONVERTED_FOLDER'], exist_ok=True)
 
 def secure_filename(filename):
-    # Sanitizes the filename to avoid path traversal
     return werkzeug.utils.secure_filename(filename)
 
 @app.route('/')
@@ -55,139 +54,45 @@ def convert():
         logging.error("No file selected")
         return "Error: No file selected", 400
     
-    # Sanitize filename
     original_filename = secure_filename(file.filename)
-    
-    # Enhanced file type validation using python-magic
     file.seek(0)
     detected_type = magic.from_buffer(file.read(1024), mime=True)
     file.seek(0)  # Reset file pointer
     ext = os.path.splitext(original_filename)[1].lower()
-    allowed = False
-    if ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']:
-        allowed = detected_type.startswith("image/")
-    elif ext in ['.mp3', '.wav', '.flac', '.ogg', '.aac']:
-        allowed = detected_type.startswith("audio/")
-    elif ext in ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.mpeg', '.mpg']:
-        allowed = detected_type.startswith("video/")
-    elif ext in ['.doc', '.docx', '.odt', '.txt', '.html', '.md', '.pdf', '.xls', '.xlsx', '.ppt', '.pptx', '.csv']:
-        allowed = True  # Accept various document types
+    allowed = (detected_type.startswith("image/") and ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']) or \
+              (detected_type.startswith("audio/") and ext in ['.mp3', '.wav', '.flac', '.ogg', '.aac']) or \
+              (detected_type.startswith("video/") and ext in ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.mpeg', '.mpg']) or \
+              ext in ['.doc', '.docx', '.odt', '.txt', '.html', '.md', '.pdf', '.xls', '.xlsx', '.ppt', '.pptx', '.csv']
     if not allowed:
         logging.error("File type validation failed: extension %s but detected mime type %s", ext, detected_type)
         return "Error: File type does not match its extension", 400
-    
-    # Get parameters from the form
+
     output_filename = request.form.get('output_filename', '').strip()
     compress = request.form.get('compress', 'n') == 'y'
     advanced = request.form.get('advanced', 'n') == 'y'
     
-    # Advanced options
-    options = {}
-    target_size = request.form.get('target_size', None)
-    target_bitrate = request.form.get('target_bitrate', None)
-    target_resolution = request.form.get('target_resolution', None)
-    if target_size:
-        try:
-            options['target_size'] = int(float(target_size) * 1024)  # Convert KB to bytes
-        except Exception as e:
-            logging.error("Error converting target_size: %s", e)
-    if target_bitrate:
-        options['target_bitrate'] = target_bitrate
-    if target_resolution:
-        parts = target_resolution.lower().split('x')
-        if len(parts) == 2:
-            try:
-                options['target_resolution'] = (int(parts[0]), int(parts[1]))
-            except Exception as e:
-                logging.error("Error converting target_resolution: %s", e)
-    
-    # Generate a unique prefix for file naming
+    options = {
+        'target_size': int(float(request.form.get('target_size', 0)) * 1024) if request.form.get('target_size') else None,
+        'target_bitrate': request.form.get('target_bitrate'),
+        'target_resolution': tuple(map(int, request.form.get('target_resolution', '0x0').split('x'))) if 'x' in request.form.get('target_resolution', '') else None
+    }
+
     unique_prefix = uuid.uuid4().hex
     input_filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_prefix + "_" + original_filename)
     file.save(input_filepath)
-    logging.info("File saved to %s", input_filepath)
     
-    if not output_filename:
-        output_filename = 'converted_' + original_filename
-    else:
-        output_filename = secure_filename(output_filename)
+    output_filename = output_filename if output_filename else 'converted_' + original_filename
     output_filepath = os.path.join(app.config['CONVERTED_FOLDER'], unique_prefix + "_" + output_filename)
-    
-    # Queue the conversion task asynchronously via Celery and wait for result
-    task = async_convert.delay(input_filepath, output_filepath, compress, advanced, options)
-    result = task.get(timeout=300)  # Wait up to 5 minutes for conversion
-    
-    if not result[0]:
-        logging.error("Conversion error for %s: %s", input_filepath, result[1])
+
+    # Perform the conversion
+    success, message = convert_file(input_filepath, output_filepath, compress, advanced, options)
+    if not success:
+        logging.error("Conversion error: %s", message)
         return "Error: Conversion failed", 500
-    
-    logging.info("Conversion successful: %s", output_filepath)
+
     return send_from_directory(directory=app.config['CONVERTED_FOLDER'],
                                path=os.path.basename(output_filepath),
                                as_attachment=True)
 
-# REST API Endpoint
-@app.route('/api/convert', methods=['POST'])
-def api_convert():
-    try:
-        if 'file' not in request.files:
-            logging.error("API conversion: No file provided")
-            return jsonify(success=False, message="No file provided"), 400
-        file = request.files['file']
-        if file.filename == '':
-            logging.error("API conversion: No file selected")
-            return jsonify(success=False, message="No file selected"), 400
-        
-        original_filename = secure_filename(file.filename)
-        output_filename = request.form.get('output_filename', '').strip()
-        compress = request.form.get('compress', 'n') == 'y'
-        advanced = request.form.get('advanced', 'n') == 'y'
-        
-        options = {}
-        target_size = request.form.get('target_size', None)
-        target_bitrate = request.form.get('target_bitrate', None)
-        target_resolution = request.form.get('target_resolution', None)
-        if target_size:
-            try:
-                options['target_size'] = int(float(target_size) * 1024)
-            except Exception as e:
-                logging.error("API conversion: error with target_size: %s", e)
-        if target_bitrate:
-            options['target_bitrate'] = target_bitrate
-        if target_resolution:
-            parts = target_resolution.lower().split('x')
-            if len(parts) == 2:
-                try:
-                    options['target_resolution'] = (int(parts[0]), int(parts[1]))
-                except Exception as e:
-                    logging.error("API conversion: error with target_resolution: %s", e)
-        
-        unique_prefix = uuid.uuid4().hex
-        input_filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_prefix + "_" + original_filename)
-        file.save(input_filepath)
-        
-        if not output_filename:
-            output_filename = 'converted_' + original_filename
-        else:
-            output_filename = secure_filename(output_filename)
-        output_filepath = os.path.join(app.config['CONVERTED_FOLDER'], unique_prefix + "_" + output_filename)
-        
-        task = async_convert.delay(input_filepath, output_filepath, compress, advanced, options)
-        result = task.get(timeout=300)
-        if not result[0]:
-            logging.error("API conversion error for %s: %s", input_filepath, result[1])
-            return jsonify(success=False, message="Conversion failed"), 500
-        
-        download_url = url_for('download_file', filename=os.path.basename(output_filepath), _external=True)
-        logging.info("API conversion successful: %s", output_filepath)
-        return jsonify(success=True, message="Conversion successful", download_url=download_url)
-    except Exception as e:
-        logging.exception("Unexpected error in API conversion")
-        return jsonify(success=False, message="An unexpected error occurred. Please try again later."), 500
-
-@app.route('/download/<filename>')
-def download_file(filename):
-    return send_from_directory(app.config['CONVERTED_FOLDER'], filename, as_attachment=True)
-
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
