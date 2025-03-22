@@ -134,6 +134,9 @@ def convert_document(input_path, output_path, advanced=False, options=None):
 
 def fallback_convert(input_path, output_path, advanced=False, options=None):
     try:
+        output_path = os.path.normpath(output_path)
+        if not output_path.startswith(app.config['CONVERTED_FOLDER']):
+            raise Exception("Invalid output path")
         shutil.copy(input_path, output_path)
         logger.info(f"Fallback conversion: file copied to {output_path}")
         return True, "File copied without conversion (unsupported file type)"
@@ -142,6 +145,9 @@ def fallback_convert(input_path, output_path, advanced=False, options=None):
         return False, str(e)
 
 def convert_file(input_path, output_path, compress=False, advanced=False, options=None):
+    output_path = os.path.normpath(output_path)
+    if not output_path.startswith(app.config['CONVERTED_FOLDER']):
+        raise Exception("Invalid output path")
     ext = os.path.splitext(input_path)[1].lower()
     if ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']:
         return convert_image(input_path, output_path, compress=compress, advanced=advanced, options=options)
