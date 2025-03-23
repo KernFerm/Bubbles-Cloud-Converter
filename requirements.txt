@@ -5,3 +5,4 @@ moviepy
 pypandoc
 python-magic
 werkzeug
+torch==2.6.0
