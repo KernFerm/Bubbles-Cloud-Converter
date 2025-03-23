@@ -39,7 +39,7 @@
   - python-magic
   - werkzeug
   - torch==2.6.0
-  - torch-directml==2.6.0 *(required for AMD GPU support)*
+  - torch-directml==torch-directml==0.2.5.dev240914 *(required for AMD GPU support)*
 
 ---
 
