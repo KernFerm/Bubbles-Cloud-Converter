@@ -6,4 +6,4 @@ pypandoc
 python-magic
 werkzeug
 torch==2.6.0
-torch-directml==2.6.0
+torch-directml==0.2.5.dev240914
