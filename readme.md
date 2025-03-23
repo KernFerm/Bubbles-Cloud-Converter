@@ -1,77 +1,110 @@
 # Bubbles Cloud Converter 🫧☁️
 
-Bubbles Cloud Converter is a robust, web-based file conversion platform built to provide local, synchronous file conversion services. This tool allows for the direct processing of various file types, ensuring quick and efficient handling directly within the application.
+**Bubbles Cloud Converter** is a robust, web-based file conversion platform built to provide local, secure, and GPU-accelerated file conversion services. This tool processes various file types quickly and efficiently through a modern Flask-based interface.
 
-## Features ✨
+---
 
-- **Upload and convert a wide range of file types:**  
-  Convert images (`PNG`, `JPEG`, `BMP`, `GIF`, `TIFF`), audio (`MP3`, `WAV`, `FLAC`, `OGG`, `AAC`), video (`MP4`, `AVI`, `MKV`, `MOV`, `WMV`, `MPEG/MPG`), and documents (`DOC`, `DOCX`, `ODT`, `TXT`, `HTML`, `MD`, `PDF`, `XLS`, `XLSX`, `PPT`, `PPTX`, `CSV`).
+## 🌟 Features
 
-- **Customize output file names:**  
-  Save your converted files with any name and extension you choose.
+- **Convert a wide range of file types:**  
+  Supports images (`PNG`, `JPEG`, `BMP`, `GIF`, `TIFF`), audio (`MP3`, `WAV`, `FLAC`, `OGG`, `AAC`), video (`MP4`, `AVI`, `MKV`, `MOV`, `WMV`, `MPEG/MPG`), and documents (`DOC`, `DOCX`, `ODT`, `TXT`, `HTML`, `MD`, `PDF`, `XLS`, `XLSX`, `PPT`, `PPTX`, `CSV`).
 
-- **Apply compression options:**  
-  Utilize settings to adjust the quality and size of the output, including basic and advanced compression options.
+- **Custom output filenames:**  
+  Rename your converted files to whatever you like.
 
-- **File Type Validation:**  
-  Uses `python-magic` to validate the MIME type of uploaded files, ensuring accurate processing.
+- **Compression Options:**  
+  Includes standard and advanced compression for images, audio, and video.
 
-- **User-Friendly Web Interface:**  
-  A simple drag-and-drop interface for file uploads with an option to toggle advanced settings.
+- **MIME Type Verification:**  
+  Ensures uploaded file content matches its extension using `python-magic`.
 
-## Requirements 📋
+- **GPU Acceleration Support:**  
+  Utilizes **NVIDIA (CUDA)** and **AMD (DirectML)** for faster video conversions.
+
+- **Secure Web Interface:**  
+  Simple drag-and-drop UI built with Bootstrap, secured with a user-defined secret key.
+
+---
+
+## 📋 Requirements
 
 - **Python 3.11.9**
-- **Flask**: For running the web server.
-- **Pillow**: For image processing.
-- **pydub**: For audio processing.
-- **moviepy**: For video processing.
-- **pypandoc**: For document conversion.
-- **python-magic**: For file type validation.
-- **werkzeug**: Utility library for Flask.
+- **FFmpeg** (required by pydub/moviepy – installed via Chocolatey or manually)
+- Python packages:
+  - Flask
+  - Pillow
+  - pydub
+  - moviepy
+  - pypandoc
+  - python-magic
+  - werkzeug
+  - torch==2.6.0
+  - torch-directml==2.6.0 *(required for AMD GPU support)*
 
-## Installation 🛠️
+---
+
+## 🛠 Installation (Windows)
 
 1. **Clone the Repository:**
+
 ```bash
 git clone https://github.com/yourgithub/Bubbles-Cloud-Converter
 cd Bubbles-Cloud-Converter
 ```
 
-2. Create a Virtual Environment and Install Dependencies:
+2. Create a Virtual Environment & Install Dependencies:
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Unix/macOS
-venv\Scripts\activate     # On Windows
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Generate a Secure Secret Key: Run this Python script to create a secure random key:
+3. Install FFmpeg (Required):
+- 🥇 Recommended (Chocolatey):
+- use powershell
+```bash
+choco install ffmpeg -y
+```
+
+- 🧰 Manual Install: Download from: `https://www.gyan.dev/ffmpeg/builds/`
+Extract and add the `bin/` folder to your `system PATH`.
+
+## 🔐 Secure the App
+Generate a Secure Secret Key:
 
 ```bash
 import secrets
-print(secrets.token_hex(32))  # Outputs a 64-character hex string
+print(secrets.token_hex(32))  # 64-character hex string
 ```
 
-4. Create a config.json file in the project root directory and add your generated key:
+## Create a config.json file in the project root:
 
 ```json
 {
-    "SECRET_KEY": "paste-your-generated-hex-key-here"
+    "SECRET_KEY": "your-secure-64-character-key"
 }
 ```
 
-5. Run the Application:
-
+## 🚀 Run the Application
 ```bash
 python run.py
 ```
-- Open your browser and visit: 👉 `http://localhost:5000`
+- Then visit 👉 http://localhost:5000
 
-## Usage 📡
+## 📡 Usage
+- Drag and drop your file into the web app.
+- Choose a custom output name and compression settings.
+- Select advanced GPU settings (NVIDIA/AMD) if applicable.
+- Download your converted file instantly.
 
-To convert a file, simply drag and drop your file into the web interface and select the desired output format and any compression options. The file will be processed, and a download link will be provided upon completion.
+## 🔒 Security Notes
 
+- Debug mode is disabled in production (`debug=False`)
+- MIME validation and path sanitation ensure safe conversion
+- All temporary and converted files stay local (no cloud storage)
 ---
+# ❤️ From the Dev
+This tool is built with love to help others convert files easily and securely—especially for those needing GPU power on local machines. 
+Have fun converting and customizing your media!
 ---
