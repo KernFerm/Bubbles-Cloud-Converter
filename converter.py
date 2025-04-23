@@ -11,8 +11,8 @@ import pypandoc
 logger = logging.getLogger(__name__)
 
 # Define allowed base directories
-SAFE_OUTPUT_DIR = os.path.abspath(os.path.join(os.getcwd(), 'converted'))
 SAFE_UPLOAD_DIR = os.path.abspath(os.path.join(os.getcwd(), 'uploads'))
+SAFE_OUTPUT_DIR = os.path.abspath(os.path.join(os.getcwd(), 'converted'))
 
 
 def is_safe_path(base_dir, path):
@@ -22,8 +22,10 @@ def is_safe_path(base_dir, path):
         logger.warning(f"Path safety check failed: {e}")
         return False
 
+
 def sanitize_path(path):
     return os.path.normpath(os.path.abspath(path))
+
 
 def convert_image(input_path, output_path, compress=False, advanced=False, options=None):
     if options is None:
@@ -31,8 +33,9 @@ def convert_image(input_path, output_path, compress=False, advanced=False, optio
     try:
         input_path = sanitize_path(input_path)
         output_path = sanitize_path(output_path)
-        if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
-            raise ValueError("Invalid output path")
+        # ensure both paths are under their safe dirs
+        if not (is_safe_path(SAFE_UPLOAD_DIR, input_path) and is_safe_path(SAFE_OUTPUT_DIR, output_path)):
+            raise ValueError("Invalid input or output path")
 
         img = Image.open(input_path)
         ext = os.path.splitext(output_path)[1].lower()
@@ -71,14 +74,16 @@ def convert_image(input_path, output_path, compress=False, advanced=False, optio
         logger.exception("Error converting image")
         return False, str(e)
 
+
 def convert_audio(input_path, output_path, advanced=False, options=None):
     if options is None:
         options = {}
     try:
         input_path = sanitize_path(input_path)
         output_path = sanitize_path(output_path)
-        if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
-            raise ValueError("Invalid output path")
+        # ensure safe paths
+        if not (is_safe_path(SAFE_UPLOAD_DIR, input_path) and is_safe_path(SAFE_OUTPUT_DIR, output_path)):
+            raise ValueError("Invalid input or output path")
 
         audio = AudioSegment.from_file(input_path)
         fmt = os.path.splitext(output_path)[1].replace('.', '')
@@ -114,14 +119,16 @@ def convert_audio(input_path, output_path, advanced=False, options=None):
         logger.exception("Error converting audio")
         return False, str(e)
 
+
 def convert_video(input_path, output_path, advanced=False, options=None):
     if options is None:
         options = {}
     try:
         input_path = sanitize_path(input_path)
         output_path = sanitize_path(output_path)
-        if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
-            raise ValueError("Invalid output path")
+        # ensure safe paths
+        if not (is_safe_path(SAFE_UPLOAD_DIR, input_path) and is_safe_path(SAFE_OUTPUT_DIR, output_path)):
+            raise ValueError("Invalid input or output path")
 
         clip = VideoFileClip(input_path)
         ext = os.path.splitext(output_path)[1].replace('.', '').lower()
@@ -148,12 +155,14 @@ def convert_video(input_path, output_path, advanced=False, options=None):
         logger.exception("Error converting video")
         return False, str(e)
 
+
 def convert_document(input_path, output_path, advanced=False, options=None):
     try:
         input_path = sanitize_path(input_path)
         output_path = sanitize_path(output_path)
-        if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
-            raise ValueError("Invalid output path")
+        # ensure safe paths
+        if not (is_safe_path(SAFE_UPLOAD_DIR, input_path) and is_safe_path(SAFE_OUTPUT_DIR, output_path)):
+            raise ValueError("Invalid input or output path")
 
         ext = os.path.splitext(output_path)[1].replace('.', '')
         output = pypandoc.convert_file(input_path, to=ext)
@@ -165,12 +174,15 @@ def convert_document(input_path, output_path, advanced=False, options=None):
         logger.exception("Error converting document")
         return False, str(e)
 
+
 def fallback_convert(input_path, output_path, advanced=False, options=None):
     try:
         input_path = sanitize_path(input_path)
         output_path = sanitize_path(output_path)
-        if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
-            raise ValueError("Invalid output path")
+        # ensure safe paths
+        if not (is_safe_path(SAFE_UPLOAD_DIR, input_path) and is_safe_path(SAFE_OUTPUT_DIR, output_path)):
+            raise ValueError("Invalid input or output path")
+
         shutil.copy(input_path, output_path)
         logger.info(f"Fallback conversion: file copied to {output_path}")
         return True, "File copied without conversion (unsupported file type)"
@@ -178,11 +190,13 @@ def fallback_convert(input_path, output_path, advanced=False, options=None):
         logger.exception("Error in fallback conversion")
         return False, str(e)
 
+
 def convert_file(input_path, output_path, compress=False, advanced=False, options=None):
     input_path = sanitize_path(input_path)
     output_path = sanitize_path(output_path)
-    if not is_safe_path(SAFE_OUTPUT_DIR, output_path):
-        raise ValueError("Invalid output path")
+    # ensure safe paths
+    if not (is_safe_path(SAFE_UPLOAD_DIR, input_path) and is_safe_path(SAFE_OUTPUT_DIR, output_path)):
+        raise ValueError("Invalid input or output path")
 
     ext = os.path.splitext(input_path)[1].lower()
     if ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']:
