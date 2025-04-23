@@ -11,7 +11,7 @@ def run(command):
 
 def install_python_packages():
     packages = [
-        "torch==2.6.0",
+        "torch==2.7.0",
         "torch-directml==2.6.0",
         "Flask",
         "Pillow",
