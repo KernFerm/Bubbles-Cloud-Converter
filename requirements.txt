@@ -1,5 +1,6 @@
 Flask
 Pillow
+bleach
 pydub
 moviepy
 pypandoc
