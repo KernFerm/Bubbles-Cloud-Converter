@@ -4,6 +4,8 @@
 
 ---
 
+- [https://discord.gg/FxJd3PxXbc](https://discord.gg/FxJd3PxXbc)
+
 ## 🌟 Features
 
 - **Convert a wide range of file types:**  
