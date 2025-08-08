@@ -4,7 +4,6 @@
 
 ---
 
-- [https://discord.gg/FxJd3PxXbc](https://discord.gg/FxJd3PxXbc)
 
 ## 🌟 Features
 
@@ -40,7 +39,7 @@
   - pypandoc
   - python-magic
   - werkzeug
-  - torch==2.6.0
+  - torch==2.8.0
   - torch-directml==0.2.5.dev240914 *(required for AMD GPU support)*
 
 ---
@@ -115,3 +114,4 @@ python run.py
 This tool is built with love to help others convert files easily and securely—especially for those needing GPU power on local machines. 
 Have fun converting and customizing your media!
 ---
+
