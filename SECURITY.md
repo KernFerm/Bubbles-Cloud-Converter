@@ -12,7 +12,7 @@ We maintain active support for the latest major release of Bubbles Cloud Convert
 
 ## Reporting a Vulnerability
 
-If you discover a security issue in Bubbles Cloud Converter, we encourage you to privately disclose it by emailing us at [contact@fnbubbles420.org](mailto:contact@fnbubbles420.org) (replace with your real security contact address). Please include the following details if possible:
+If you discover a security issue in Bubbles Cloud Converter, we encourage you to privately disclose it by emailing us at [securitygithubissue@fnbubbles420.org](mailto:securitygithubissue@fnbubbles420.org) (replace with your real security contact address). Please include the following details if possible:
 
 - A description of the issue
 - Steps to reproduce or proof-of-concept code
