@@ -6,5 +6,5 @@ moviepy
 pypandoc
 python-magic
 werkzeug
-torch==2.8.0
+torch==2.9.0
 torch-directml==0.2.5.dev240914
