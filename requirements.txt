@@ -1,10 +1,11 @@
-Flask
-Pillow
+Flask==3.1.2
+Pillow==10.4.0
 bleach
 pydub
 moviepy
 pypandoc
 python-magic
-werkzeug
-torch==2.10.0
+werkzeug==3.1.5
+torch
 torch-directml==0.2.5.dev240914
+
