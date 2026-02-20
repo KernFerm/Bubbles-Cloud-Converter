@@ -5,7 +5,7 @@ pydub
 moviepy
 pypandoc
 python-magic
-werkzeug==3.1.5
+werkzeug==3.1.6
 torch
 torch-directml==0.2.5.dev240914
 
